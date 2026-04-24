@@ -1,256 +1,257 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes
 
-TOKEN = "8619884398:AAH1dBUDKUQCD1jC4VLBSXDlQVkt5SaKvK4"
+TOKEN = "8619884398:AAFCzvnWaZwsakcOGtnGI6SLBTPgRd0bkoA"
 ADMIN_ID = 5672707695
 
-# ---------- CATEGORIES ----------
-categories = ["Chaussures", "T-shirt", "Short", "Pull", "Pantalon", "Chapeau", "Veste"]
+# ================= DATA =================
 
-# ---------- CHAUSSURES ----------
-shoe_brands = ["Nike", "Adidas", "Asics", "New Balance", "Saucony"]
+categories = ["chaussures", "T-shirt", "short", "pull"]
+
+shoe_brands = ["Nike", "Adidas", "New Balance"]
 
 shoe_models = {
-    "Nike": ["Air Force 1", "TN", "Shox", "Air Max 95", "Air Max 90", "Dunk", "P-6000", "Vomero"],
-    "Adidas": ["Samba", "Gazelle", "Campus", "Spezial"],
-    "New Balance": ["2002R", "1906R", "9060", "530", "550", "327"],
-    "Asics": ["Gel NYC", "Gel Kayano 14", "Gel Cumulus 16", "Gel Nimbus 10.1", "Kayano 12.1", "Gel 1130", "GT-2160"],
-    "Saucony": ["Omni9"]
+    "Nike": ["Air Force 1", "TN"],
+    "Adidas": ["Samba"],
+    "New Balance": ["2002R"]
 }
 
-# ---------- VÊTEMENTS ----------
-clothing_brands = ["Louis Vuitton", "Gucci", "Prada", "Amiri", "Stone Island", "CP Company", "Fendi", "Ralph Lauren"]
-
-pants_brands = ["Nike", "Adidas", "Stone Island"]
-
-# ---------- VESTES ----------
-vest_types = ["Jacket", "Doudoune", "Imperméable"]
-
-vest_brands = {
-    "Jacket": ["Stone Island", "CP Company", "Burberry"],
-    "Doudoune": ["Stone Island", "CP Company", "Burberry"],
-    "Imperméable": ["Stone Island", "CP Company"]
+products = {
+    "Nike_Air Force 1": {
+        "img": "https://i.imgur.com/OZ8FQ0M.png"
+    },
+    "Nike_TN": {
+        "img": "https://i.imgur.com/Z9qv7Qn.png"
+    },
+    "Adidas_Samba": {
+        "img": "https://i.imgur.com/Q7SKX7N.png"
+    },
+    "New Balance_2002R": {
+        "img": "https://i.imgur.com/Q7SKX7N.png"
+    }
 }
 
-# ---------- CHAPEAUX ----------
-hat_beanie = ["Gucci", "Louis Vuitton", "Lacoste"]
-hat_cap = ["Fendi", "Gucci"]
+user_cart = {}
+user_waiting_phone = {}
 
-# ---------- TEMP DATA ----------
-user_waiting_custom = {}
-user_custom_message = {}
+# ================= MENUS =================
 
-# ---------- MENUS ----------
 def main_menu():
-    return InlineKeyboardMarkup(
-        [[InlineKeyboardButton(c, callback_data=f"cat_{c}")] for c in categories]
-    )
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton(c, callback_data=f"cat_{c}")]
+        for c in categories
+    ])
 
-# ---------- CHAUSSURES ----------
+
 def shoe_brand_menu():
     return InlineKeyboardMarkup(
-        [[InlineKeyboardButton(b, callback_data=f"shoe_brand_{b}")] for b in shoe_brands] +
-        [[InlineKeyboardButton("⬅️ Retour", callback_data="back_main")]]
+        [[InlineKeyboardButton(b, callback_data=f"brand_{b}")]
+         for b in shoe_brands] +
+        [[InlineKeyboardButton("🛒 Voir panier", callback_data="cart")]]
     )
+
 
 def shoe_model_menu(brand):
     return InlineKeyboardMarkup(
-        [[InlineKeyboardButton(m, callback_data=f"shoe_model_{brand}_{m}")] for m in shoe_models[brand]] +
-        [[InlineKeyboardButton("⬅️ Retour", callback_data="back_shoes")]]
+        [[InlineKeyboardButton(m,
+         callback_data=f"model_{brand}_{m}")]
+         for m in shoe_models[brand]] +
+        [[InlineKeyboardButton("⬅️ Retour", callback_data="back")]]
     )
 
-# ---------- VÊTEMENTS ----------
-def clothing_menu(category):
-    if category == "Pantalon":
-        brands = pants_brands
-    else:
-        brands = clothing_brands
 
-    keyboard = [[InlineKeyboardButton(b, callback_data=f"cloth_{category}_{b}")] for b in brands]
-    keyboard.append([InlineKeyboardButton("⭐ Recherche personnalisée", callback_data=f"custom_{category}")])
-    keyboard.append([InlineKeyboardButton("⬅️ Retour", callback_data="back_main")])
-
-    return InlineKeyboardMarkup(keyboard)
-
-# ---------- VESTES ----------
-def vest_type_menu():
-    return InlineKeyboardMarkup(
-        [[InlineKeyboardButton(v, callback_data=f"vest_{v}")] for v in vest_types] +
-        [[InlineKeyboardButton("⬅️ Retour", callback_data="back_main")]]
-    )
-
-def vest_brand_menu(v_type):
-    return InlineKeyboardMarkup(
-        [[InlineKeyboardButton(b, callback_data=f"vest_brand_{v_type}_{b}")] for b in vest_brands[v_type]] +
-        [[InlineKeyboardButton("⬅️ Retour", callback_data="cat_Veste")]]
-    )
-
-# ---------- CHAPEAUX ----------
-def hat_menu():
+def cart_menu():
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("Bonnet", callback_data="hat_beanie")],
-        [InlineKeyboardButton("Casquette", callback_data="hat_cap")],
-        [InlineKeyboardButton("⬅️ Retour", callback_data="back_main")]
+        [InlineKeyboardButton("✅ Commander", callback_data="checkout")],
+        [InlineKeyboardButton("🗑 Vider panier", callback_data="clear")],
+        [InlineKeyboardButton("⬅️ Retour", callback_data="back")]
     ])
 
-def hat_brand_menu(type_):
-    brands = hat_beanie if type_ == "beanie" else hat_cap
 
-    return InlineKeyboardMarkup(
-        [[InlineKeyboardButton(b, callback_data=f"hat_brand_{type_}_{b}")] for b in brands] +
-        [[InlineKeyboardButton("⬅️ Retour", callback_data="cat_Chapeau")]]
+def phone_menu():
+    return ReplyKeyboardMarkup(
+        [[KeyboardButton("📱 Partager numéro",
+         request_contact=True)]],
+        resize_keyboard=True,
+        one_time_keyboard=True
     )
 
-# ---------- CONFIRM ----------
-def confirm_menu(text):
-    return InlineKeyboardMarkup([
-        [InlineKeyboardButton("✅ Confirmer", callback_data=f"confirm_{text}")],
-        [InlineKeyboardButton("⬅️ Retour", callback_data="back_main")]
-    ])
+# ================= START =================
 
-# ---------- START ----------
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def start(update: Update,
+                context: ContextTypes.DEFAULT_TYPE):
+
+    user_cart[update.effective_user.id] = []
+
     await update.message.reply_text(
-        "👋 Bienvenue sur le Shop !\n\nChoisis une catégorie 👇",
+        "Bienvenue 👋 Choisis une catégorie :",
         reply_markup=main_menu()
     )
 
-# ---------- AUTO MESSAGE ----------
-async def auto_reply(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.message.from_user.id
+# ================= CALLBACK =================
 
-    if user_waiting_custom.get(user_id):
-        user_custom_message[user_id] = update.message.text
-        user_waiting_custom[user_id] = False
+async def button(update: Update,
+                 context: ContextTypes.DEFAULT_TYPE):
 
-        keyboard = [
-            [InlineKeyboardButton("✅ Envoyer", callback_data="send_custom")],
-            [InlineKeyboardButton("❌ Annuler", callback_data="cancel_custom")]
-        ]
-
-        await update.message.reply_text(
-            f"📦 Ta demande :\n\n{update.message.text}",
-            reply_markup=InlineKeyboardMarkup(keyboard)
-        )
-        return
-
-    await update.message.reply_text("👋 Choisis une catégorie 👇", reply_markup=main_menu())
-
-# ---------- CALLBACK ----------
-async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    data = query.data
 
-    # catégories
+    data = query.data
+    user_id = query.from_user.id
+
+    if user_id not in user_cart:
+        user_cart[user_id] = []
+
+# -------- CATEGORIES --------
+
     if data.startswith("cat_"):
+
         cat = data.split("_")[1]
 
-        if cat == "Chaussures":
-            await query.edit_message_text("👟 Choisis une marque 👇", reply_markup=shoe_brand_menu())
+        if cat == "chaussures":
 
-        elif cat == "Veste":
-            await query.edit_message_text("🧥 Type de veste 👇", reply_markup=vest_type_menu())
-
-        elif cat == "Chapeau":
-            await query.edit_message_text("🧢 Choisis 👇", reply_markup=hat_menu())
+            await query.edit_message_text(
+                "Choisis une marque 👟",
+                reply_markup=shoe_brand_menu()
+            )
 
         else:
-            await query.edit_message_text("👕 Choisis une marque 👇", reply_markup=clothing_menu(cat))
 
-    # chaussures marques
-    elif data.startswith("shoe_brand_"):
-        brand = data.split("_")[2]
-        await query.edit_message_text("👟 Modèles 👇", reply_markup=shoe_model_menu(brand))
+            await query.edit_message_text(
+                f"{cat} bientôt dispo 🔥",
+                reply_markup=main_menu()
+            )
 
-    # chaussures modèles
-    elif data.startswith("shoe_model_"):
-        _, _, brand, model = data.split("_", 3)
-        await query.edit_message_text(
-            f"Tu veux : {model} ({brand}) ?",
-            reply_markup=confirm_menu(f"{brand} - {model}")
-        )
+# -------- BRANDS --------
 
-    # vêtements
-    elif data.startswith("cloth_"):
-        _, cat, brand = data.split("_", 2)
-        await query.edit_message_text(
-            f"{brand} ?",
-            reply_markup=confirm_menu(f"{brand} ({cat})")
-        )
+    elif data.startswith("brand_"):
 
-    # vestes types
-    elif data.startswith("vest_"):
-        v = data.split("_")[1]
-        await query.edit_message_text("Choisis une marque 👇", reply_markup=vest_brand_menu(v))
-
-    # vestes marques
-    elif data.startswith("vest_brand_"):
-        _, _, v_type, brand = data.split("_")
-        await query.edit_message_text(
-            f"{brand} ({v_type}) ?",
-            reply_markup=confirm_menu(f"{brand} - {v_type}")
-        )
-
-    # chapeaux
-    elif data == "hat_beanie":
-        await query.edit_message_text("Bonnet 👇", reply_markup=hat_brand_menu("beanie"))
-
-    elif data == "hat_cap":
-        await query.edit_message_text("Casquette 👇", reply_markup=hat_brand_menu("cap"))
-
-    elif data.startswith("hat_brand_"):
-        _, _, type_, brand = data.split("_")
-        await query.edit_message_text(
-            f"{brand} ?",
-            reply_markup=confirm_menu(f"{brand} ({type_})")
-        )
-
-    # custom
-    elif data.startswith("custom_"):
-        cat = data.split("_")[1]
-        user_waiting_custom[query.from_user.id] = cat
+        brand = data.split("_")[1]
 
         await query.edit_message_text(
-            f"🔍 Recherche personnalisée ({cat})\n\nExemple : Nike TN noir taille 42"
+            "Choisis un modèle 👇",
+            reply_markup=shoe_model_menu(brand)
         )
 
-    # confirm
-    elif data.startswith("confirm_"):
-        text = data.replace("confirm_", "")
+# -------- MODELS --------
 
-        user = query.from_user.username or "No username"
+    elif data.startswith("model_"):
 
-        await query.edit_message_text("✅ Commande envoyée !")
+        parts = data.split("_")
 
-        await context.bot.send_message(
-            chat_id=ADMIN_ID,
-            text=f"🛒 Nouvelle commande\n\n@{user}\n{text}"
+        brand = parts[1]
+        model = parts[2]
+
+        key = f"{brand}_{model}"
+
+        user_cart[user_id].append(key)
+
+        product = products.get(key)
+
+        if product:
+
+            await query.message.reply_photo(
+                product["img"],
+                caption=f"{model} ajouté au panier 🛒"
+            )
+
+# -------- CART --------
+
+    elif data == "cart":
+
+        cart = user_cart[user_id]
+
+        if not cart:
+
+            await query.edit_message_text(
+                "Panier vide 🛒"
+            )
+
+        else:
+
+            text = "\n".join(cart)
+
+            await query.edit_message_text(
+                f"Ton panier:\n{text}",
+                reply_markup=cart_menu()
+            )
+
+# -------- CLEAR --------
+
+    elif data == "clear":
+
+        user_cart[user_id] = []
+
+        await query.edit_message_text(
+            "Panier vidé 🗑"
         )
 
-    # custom send
-    elif data == "send_custom":
-        msg = user_custom_message.get(query.from_user.id)
+# -------- CHECKOUT --------
 
-        await query.edit_message_text("✅ Envoyé !")
+    elif data == "checkout":
 
-        await context.bot.send_message(
-            chat_id=ADMIN_ID,
-            text=f"🔍 Demande custom\n\n@{query.from_user.username}\n{msg}"
+        user_waiting_phone[user_id] = True
+
+        await query.message.reply_text(
+            "Envoie ton numéro 📱",
+            reply_markup=phone_menu()
         )
 
-    elif data == "cancel_custom":
-        await query.edit_message_text("❌ Annulé", reply_markup=main_menu())
+# -------- BACK --------
 
-    elif data == "back_main":
-        await query.edit_message_text("👋 Catégories 👇", reply_markup=main_menu())
+    elif data == "back":
 
-# ---------- RUN ----------
+        await query.edit_message_text(
+            "Menu principal",
+            reply_markup=main_menu()
+        )
+
+# ================= CONTACT =================
+
+async def contact_handler(update: Update,
+                          context: ContextTypes.DEFAULT_TYPE):
+
+    user = update.message.from_user
+
+    if user.id not in user_waiting_phone:
+        return
+
+    phone = update.message.contact.phone_number
+
+    cart = user_cart.get(user.id, [])
+
+    text = (
+        f"📦 NOUVELLE COMMANDE\n\n"
+        f"Client: {user.full_name}\n"
+        f"Phone: {phone}\n\n"
+        f"Produits:\n"
+        + "\n".join(cart)
+    )
+
+    await context.bot.send_message(
+        chat_id=ADMIN_ID,
+        text=text
+    )
+
+    await update.message.reply_text(
+        "Commande envoyée ✅",
+        reply_markup=ReplyKeyboardRemove()
+    )
+
+    user_cart[user.id] = []
+    user_waiting_phone[user.id] = False
+
+# ================= RUN =================
+
 app = ApplicationBuilder().token(TOKEN).build()
 
 app.add_handler(CommandHandler("start", start))
-app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, auto_reply))
 app.add_handler(CallbackQueryHandler(button))
+app.add_handler(MessageHandler(
+    filters.CONTACT,
+    contact_handler
+))
 
-print("Bot lancé...")
+print("Bot lancé 🚀")
+
 app.run_polling()
