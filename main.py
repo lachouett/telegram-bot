@@ -1,7 +1,7 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes
 
-TOKEN = "8619884398:AAFCzvnWaZwsakcOGtnGI6SLBTPgRd0bkoA"
+TOKEN = "8619884398:AAF6LfVgtxEExNRhTM181PdsHggAmAI0UCM"
 ADMIN_ID = 5672707695
 
 # ================= DATA =================
