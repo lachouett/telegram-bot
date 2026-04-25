@@ -1,8 +1,9 @@
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes
+from telegram import Update, ReplyKeyboardMarkup
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 
-TOKEN = "8619884398:AAE37x8gTin70b5g0Di6AKsTZHayFrxdHUII"
-ADMIN_ID = 5672707695
+TOKEN = "8619884398:AAHu8Uq4yUyfpxWL38u0DDyg_yLyaToW3xY"
+
+# --- CATALOGUE COMPLET ---
 
 catalogue = {
 
@@ -46,8 +47,6 @@ catalogue = {
             "Omni9"
         ],
 
-        "Dior": [],
-
         "Salomon": [
             "XT-6XT"
         ],
@@ -58,6 +57,11 @@ catalogue = {
 
         "Balenciaga": [
             "Track"
+        ],
+
+        "Dior": [
+            "B22",
+            "B30"
         ]
 
     }
@@ -70,37 +74,57 @@ def clavier_categories():
     boutons = [[cat] for cat in catalogue.keys()]
     return ReplyKeyboardMarkup(boutons, resize_keyboard=True)
 
+
 def clavier_marques(categorie):
-    boutons = [[marque] for marque in catalogue[categorie].keys()]
+    boutons = [[marque] for marque in catalogue[categorie]]
     boutons.append(["🔙 Retour"])
     return ReplyKeyboardMarkup(boutons, resize_keyboard=True)
+
 
 def clavier_modeles(categorie, marque):
     modeles = catalogue[categorie][marque]
 
-    if not modeles:
-        boutons = [["Aucun modèle disponible"]]
-    else:
-        boutons = [[m] for m in modeles]
+    boutons = [[modele] for modele in modeles]
 
     boutons.append(["🔙 Retour"])
+
     return ReplyKeyboardMarkup(boutons, resize_keyboard=True)
 
-# --- COMMANDES ---
+
+# --- START ---
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
+    context.user_data.clear()
+
     await update.message.reply_text(
-        "Bienvenue 👟\nChoisis une catégorie :",
+        "👟 Bienvenue\nChoisis une catégorie :",
         reply_markup=clavier_categories()
     )
+
+
+# --- MESSAGES ---
 
 async def message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     texte = update.message.text
 
+    # 🔙 RETOUR
     if texte == "🔙 Retour":
-        context.user_data.clear()
+
+        if "marque" in context.user_data:
+            del context.user_data["marque"]
+
+            categorie = context.user_data["categorie"]
+
+            await update.message.reply_text(
+                "Choisis une marque :",
+                reply_markup=clavier_marques(categorie)
+            )
+            return
+
+        if "categorie" in context.user_data:
+            del context.user_data["categorie"]
 
         await update.message.reply_text(
             "Menu principal :",
@@ -108,16 +132,20 @@ async def message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
+
+    # 📦 Catégorie choisie
     if texte in catalogue:
 
         context.user_data["categorie"] = texte
 
         await update.message.reply_text(
-            f"Choisis une marque pour {texte} :",
+            "Choisis une marque :",
             reply_markup=clavier_marques(texte)
         )
         return
 
+
+    # 🏷️ Marque choisie
     if "categorie" in context.user_data:
 
         categorie = context.user_data["categorie"]
@@ -132,12 +160,24 @@ async def message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
             return
 
+
+    # 👟 Modèle choisi
+    if "marque" in context.user_data:
+
+        await update.message.reply_text(
+            f"✅ Tu as sélectionné : {texte}"
+        )
+
+
 # --- LANCEMENT ---
 
-app = ApplicationBuilder().token(8619884398:AAE37x8gTin70b5g0Di6AKsTZHayFrxdHUII).build()
+app = ApplicationBuilder().token(TOKEN).build()
 
 app.add_handler(CommandHandler("start", start))
-app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message))
+
+app.add_handler(
+    MessageHandler(filters.TEXT & ~filters.COMMAND, message)
+)
 
 print("Bot lancé...")
 
