@@ -106,7 +106,7 @@ def brand_menu(cat):
         +
 
         [[InlineKeyboardButton(
-            "⬅️ Retour",
+            "⬅️ Retour menu",
             callback_data="back_main"
         )]]
 
@@ -125,7 +125,7 @@ def model_menu(cat, brand):
         +
 
         [[InlineKeyboardButton(
-            "⬅️ Retour",
+            "⬅️ Retour marques",
             callback_data=f"cat_{cat}"
         )]]
 
@@ -312,7 +312,7 @@ async def button(update: Update,
             reply_markup=cart_menu()
         )
 
-# -------- CLEAR CART (VIDE VRAIMENT) --------
+# -------- CLEAR CART --------
 
     elif data == "clear":
 
@@ -320,6 +320,15 @@ async def button(update: Update,
 
         await query.edit_message_text(
             "🗑 Panier vidé avec succès.",
+            reply_markup=main_menu()
+        )
+
+# -------- CONTINUER ACHATS --------
+
+    elif data == "back_main":
+
+        await query.edit_message_text(
+            "Choisis une catégorie 👇",
             reply_markup=main_menu()
         )
 
