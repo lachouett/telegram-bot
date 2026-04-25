@@ -81,10 +81,8 @@ waiting_phone = {}
 def main_menu():
 
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton(
-            c,
-            callback_data=f"cat_{c}"
-        )]
+        [InlineKeyboardButton(c,
+         callback_data=f"cat_{c}")]
         for c in categories
     ])
 
@@ -145,7 +143,7 @@ def confirm_add_menu(cat, brand, item):
 
         [InlineKeyboardButton(
             "❌ Non",
-            callback_data=f"brand_{cat}_{brand}"
+            callback_data=f"cat_{cat}"
         )]
 
     ])
@@ -314,6 +312,17 @@ async def button(update: Update,
             reply_markup=cart_menu()
         )
 
+# -------- CLEAR CART (VIDE VRAIMENT) --------
+
+    elif data == "clear":
+
+        user_cart[user_id].clear()
+
+        await query.edit_message_text(
+            "🗑 Panier vidé avec succès.",
+            reply_markup=main_menu()
+        )
+
 # -------- CART --------
 
     elif data == "cart":
@@ -397,7 +406,7 @@ async def contact_handler(update: Update,
         reply_markup=ReplyKeyboardRemove()
     )
 
-    user_cart[user.id] = []
+    user_cart[user.id].clear()
     waiting_phone[user.id] = False
 
 # ================= TEXT =================
