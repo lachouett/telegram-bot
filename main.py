@@ -1,7 +1,6 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes
 
-TOKEN = "8619884398:AAF6LfVgtxEExNRhTM181PdsHggAmAI0UCM"
 ADMIN_ID = 5672707695
 
 # --- DONNÉES ---
@@ -201,7 +200,7 @@ async def message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # --- LANCEMENT BOT ---
 
-app = ApplicationBuilder().token("8619884398:AAF6LfVgtxEExNRhTM181PdsHggAmAI0UCM").build()
+app = ApplicationBuilder().token("8619884398:AAE37x8gTin70b5g0Di6AKsTZHayFrxdHUI").build()
 
 app.add_handler(CommandHandler("start", start))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message))
