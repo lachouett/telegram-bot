@@ -77,7 +77,8 @@ def phone_keyboard():
     return ReplyKeyboardMarkup(
         [[KeyboardButton("📱 Partager mon numéro", request_contact=True)]],
         resize_keyboard=True,
-        one_time_keyboard=True
+        one_time_keyboard=True,
+        input_field_placeholder="Clique sur le bouton en bas 👇"
     )
 
 def cart_menu():
@@ -175,18 +176,13 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=confirm_phone_menu()
         )
 
-    # PHONE YES (FIX IMPORTANT)
+    # PHONE YES (FIX FINAL)
     elif data == "phone_yes":
         waiting_phone[user_id] = True
 
-        # message 1
         await query.message.reply_text(
-            "📞 Pour être contacté rapidement, clique ci-dessous 👇"
-        )
-
-        # message 2 (obligatoire pour fix)
-        await query.message.reply_text(
-            "👇 Bouton :",
+            "📞 Pour être contacté rapidement 👇\n\n"
+            "👉 Le bouton est en bas du chat (pas dans le message)",
             reply_markup=phone_keyboard()
         )
 
