@@ -6,15 +6,7 @@ ADMIN_ID = 5672707695
 
 # ================= DATA =================
 
-categories = [
-    "chaussures",
-    "T-shirt",
-    "pull",
-    "short",
-    "veste",
-    "pantalon",
-    "chapeau"
-]
+categories = ["chaussures","T-shirt","pull","short","veste","pantalon","chapeau"]
 
 brands = {
     "chaussures": ["Nike","Adidas","New Balance"],
@@ -33,7 +25,6 @@ shoe_models = {
 }
 
 user_cart = {}
-waiting_phone = {}
 
 # ================= MENUS =================
 
@@ -48,9 +39,7 @@ def brand_menu(cat):
         [[InlineKeyboardButton(b, callback_data=f"brand_{cat}_{b}")]
          for b in brands[cat]]
         +
-        [[InlineKeyboardButton("🛒 Voir panier", callback_data="cart")]]
-        +
-        [[InlineKeyboardButton("⬅️ Menu", callback_data="back_main")]]
+        [[InlineKeyboardButton("🛒 Panier", callback_data="cart")]]
     )
 
 def model_menu(cat, brand):
@@ -61,41 +50,24 @@ def model_menu(cat, brand):
         [[InlineKeyboardButton("⬅️ Retour", callback_data=f"cat_{cat}")]]
     )
 
-def confirm_order_menu():
+def cart_menu():
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("✅ Oui", callback_data="confirm_order_yes")],
-        [InlineKeyboardButton("❌ Non", callback_data="cart")]
-    ])
-
-def confirm_phone_menu():
-    return InlineKeyboardMarkup([
-        [InlineKeyboardButton("📱 Oui partager numéro", callback_data="phone_yes")],
-        [InlineKeyboardButton("❌ Non continuer", callback_data="phone_no")]
+        [InlineKeyboardButton("✅ Commander", callback_data="checkout")],
+        [InlineKeyboardButton("🗑 Vider", callback_data="clear")]
     ])
 
 def phone_keyboard():
     return ReplyKeyboardMarkup(
         [[KeyboardButton("📱 Partager mon numéro", request_contact=True)]],
         resize_keyboard=True,
-        one_time_keyboard=True,
-        input_field_placeholder="Clique sur le bouton en bas 👇"
+        one_time_keyboard=True
     )
-
-def cart_menu():
-    return InlineKeyboardMarkup([
-        [InlineKeyboardButton("✅ Commander", callback_data="checkout")],
-        [InlineKeyboardButton("🗑 Vider panier", callback_data="clear")],
-        [InlineKeyboardButton("⬅️ Continuer achats", callback_data="back_main")]
-    ])
 
 # ================= START =================
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_cart[update.effective_user.id] = []
-    await update.message.reply_text(
-        "Bienvenue 👋 Choisis une catégorie :",
-        reply_markup=main_menu()
-    )
+    await update.message.reply_text("Bienvenue 👋", reply_markup=main_menu())
 
 # ================= CALLBACK =================
 
@@ -109,93 +81,49 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if user_id not in user_cart:
         user_cart[user_id] = []
 
-    # CAT
     if data.startswith("cat_"):
         cat = data.split("_")[1]
-        await query.edit_message_text(
-            "Choisis une marque 👇",
-            reply_markup=brand_menu(cat)
-        )
+        await query.edit_message_text("Choisis une marque 👇", reply_markup=brand_menu(cat))
 
-    # BRAND
     elif data.startswith("brand_"):
-        _, cat, brand = data.split("_", 2)
+        _, cat, brand = data.split("_",2)
 
         if cat == "chaussures":
-            await query.edit_message_text(
-                "Choisis un modèle 👇",
-                reply_markup=model_menu(cat, brand)
-            )
+            await query.edit_message_text("Choisis modèle 👇", reply_markup=model_menu(cat, brand))
         else:
             product = f"{cat} {brand}"
             user_cart[user_id].append(product)
+            await query.edit_message_text(f"{product} ajouté 🛒", reply_markup=cart_menu())
 
-            await query.edit_message_text(
-                f"{product} ajouté au panier 🛒",
-                reply_markup=cart_menu()
-            )
-
-    # MODEL
     elif data.startswith("model_"):
-        _, cat, brand, model = data.split("_", 3)
-
+        _, cat, brand, model = data.split("_",3)
         product = f"{brand} {model}"
         user_cart[user_id].append(product)
 
-        await query.edit_message_text(
-            f"{product} ajouté au panier 🛒",
-            reply_markup=cart_menu()
-        )
+        await query.edit_message_text(f"{product} ajouté 🛒", reply_markup=cart_menu())
 
-    # CART
     elif data == "cart":
         cart = user_cart[user_id]
 
         if not cart:
-            await query.edit_message_text("Panier vide 🛒", reply_markup=main_menu())
+            await query.edit_message_text("Panier vide", reply_markup=main_menu())
         else:
-            text = "\n".join(cart)
-            await query.edit_message_text(f"Ton panier:\n{text}", reply_markup=cart_menu())
+            await query.edit_message_text(
+                "🛒\n" + "\n".join(cart),
+                reply_markup=cart_menu()
+            )
 
-    # CLEAR
     elif data == "clear":
         user_cart[user_id].clear()
-        await query.edit_message_text("🗑 Panier vidé.", reply_markup=main_menu())
+        await query.edit_message_text("Panier vidé", reply_markup=main_menu())
 
-    # CHECKOUT
+    # 🚀 CHECKOUT DIRECT (FIX BUG)
     elif data == "checkout":
-        await query.edit_message_text(
-            "Es-tu sûr de vouloir commander ?",
-            reply_markup=confirm_order_menu()
-        )
-
-    # CONFIRM ORDER
-    elif data == "confirm_order_yes":
-        await query.edit_message_text(
-            "Souhaites-tu partager ton numéro ?",
-            reply_markup=confirm_phone_menu()
-        )
-
-    # PHONE YES (FIX FINAL)
-    elif data == "phone_yes":
-        waiting_phone[user_id] = True
+        context.user_data["cart"] = user_cart[user_id]
 
         await query.message.reply_text(
-            "📞 Pour être contacté rapidement 👇\n\n"
-            "👉 Le bouton est en bas du chat (pas dans le message)",
+            "📞 Pour finaliser ta commande 👇",
             reply_markup=phone_keyboard()
-        )
-
-    # PHONE NO
-    elif data == "phone_no":
-        await send_order(context, user_id, "Non fourni")
-        await query.edit_message_text("Commande envoyée sans numéro ✅")
-
-    # BACK
-    elif data == "back_main":
-        await query.edit_message_text(
-            "Choisis une catégorie 👇",
-            reply_markup=main_menu()
         )
 
 # ================= CONTACT =================
@@ -204,42 +132,21 @@ async def contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not update.message.contact:
         return
 
-    user_id = update.message.from_user.id
-
-    if not waiting_phone.get(user_id):
-        return
-
+    user = update.message.from_user
     phone = update.message.contact.phone_number
-
-    await send_order(context, user_id, phone)
+    cart = context.user_data.get("cart", [])
 
     await update.message.reply_text(
         "Commande envoyée ✅",
         reply_markup=ReplyKeyboardRemove()
     )
 
-    waiting_phone[user_id] = False
-
-# ================= SEND ORDER =================
-
-async def send_order(context, user_id, phone):
-    cart = user_cart.get(user_id, [])
-    produits = "\n".join(cart)
-
-    message = (
-        f"📦 NOUVELLE COMMANDE\n\n"
-        f"📞 Numéro: {phone}\n\n"
-        f"🛍 Produits:\n{produits}"
+    await context.bot.send_message(
+        chat_id=ADMIN_ID,
+        text=f"📦 COMMANDE\n\n👤 {user.full_name}\n📞 {phone}\n\n" + "\n".join(cart)
     )
 
-    await context.bot.send_message(chat_id=ADMIN_ID, text=message)
-
-    user_cart[user_id].clear()
-
-# ================= TEXT =================
-
-async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await start(update, context)
+    user_cart[user.id] = []
 
 # ================= RUN =================
 
@@ -248,7 +155,6 @@ app = ApplicationBuilder().token(TOKEN).build()
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CallbackQueryHandler(button))
 app.add_handler(MessageHandler(filters.CONTACT, contact_handler))
-app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_handler))
 
 print("Bot lancé 🚀")
 app.run_polling()
