@@ -81,8 +81,10 @@ waiting_phone = {}
 def main_menu():
 
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton(c,
-         callback_data=f"cat_{c}")]
+        [InlineKeyboardButton(
+            c,
+            callback_data=f"cat_{c}"
+        )]
         for c in categories
     ])
 
@@ -143,7 +145,7 @@ def confirm_add_menu(cat, brand, item):
 
         [InlineKeyboardButton(
             "❌ Non",
-            callback_data=f"cat_{cat}"
+            callback_data=f"brand_{cat}_{brand}"
         )]
 
     ])
@@ -160,7 +162,24 @@ def confirm_order_menu():
 
         [InlineKeyboardButton(
             "❌ Non",
-            callback_data="confirm_order_no"
+            callback_data="cart"
+        )]
+
+    ])
+
+
+def confirm_phone_menu():
+
+    return InlineKeyboardMarkup([
+
+        [InlineKeyboardButton(
+            "📱 Oui partager numéro",
+            callback_data="phone_yes"
+        )],
+
+        [InlineKeyboardButton(
+            "❌ Non",
+            callback_data="cart"
         )]
 
     ])
@@ -283,7 +302,6 @@ async def button(update: Update,
 
         parts = data.split("_")
 
-        cat = parts[1]
         brand = parts[2]
         item = parts[3]
 
@@ -323,28 +341,28 @@ async def button(update: Update,
     elif data == "checkout":
 
         await query.edit_message_text(
-            "Es-tu sûr de vouloir commander ?",
+            "Êtes-vous sûr de vouloir commander ?",
             reply_markup=confirm_order_menu()
         )
 
-# -------- CONFIRM ORDER YES --------
+# -------- CONFIRM ORDER --------
 
     elif data == "confirm_order_yes":
+
+        await query.edit_message_text(
+            "Voulez-vous partager votre numéro pour que le vendeur vous contacte rapidement ?",
+            reply_markup=confirm_phone_menu()
+        )
+
+# -------- PHONE CONFIRM --------
+
+    elif data == "phone_yes":
 
         waiting_phone[user_id] = True
 
         await query.message.reply_text(
-            "Partage ton numéro 📱 pour que le vendeur te contacte rapidement.",
+            "Clique sur le bouton ci-dessous pour partager ton numéro 📱",
             reply_markup=phone_menu()
-        )
-
-# -------- CONFIRM ORDER NO --------
-
-    elif data == "confirm_order_no":
-
-        await query.edit_message_text(
-            "Commande annulée.",
-            reply_markup=cart_menu()
         )
 
 # ================= CONTACT =================
@@ -382,6 +400,13 @@ async def contact_handler(update: Update,
     user_cart[user.id] = []
     waiting_phone[user.id] = False
 
+# ================= TEXT =================
+
+async def text_handler(update: Update,
+                       context: ContextTypes.DEFAULT_TYPE):
+
+    await start(update, context)
+
 # ================= RUN =================
 
 app = ApplicationBuilder().token(TOKEN).build()
@@ -392,6 +417,11 @@ app.add_handler(CallbackQueryHandler(button))
 app.add_handler(MessageHandler(
     filters.CONTACT,
     contact_handler
+))
+
+app.add_handler(MessageHandler(
+    filters.TEXT & ~filters.COMMAND,
+    text_handler
 ))
 
 print("Bot lancé 🚀")
