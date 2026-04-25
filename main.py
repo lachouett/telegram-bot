@@ -4,8 +4,6 @@ from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandle
 TOKEN = "8619884398:AAF6LfVgtxEExNRhTM181PdsHggAmAI0UCM"
 ADMIN_ID = 5672707695
 
-# ================= DATA =================
-
 categories = [
     "chaussures",
     "T-shirt",
@@ -41,7 +39,8 @@ waiting_phone = {}
 
 def main_menu():
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton(c,callback_data=f"cat_{c}")]
+        [InlineKeyboardButton(c,
+         callback_data=f"cat_{c}")]
         for c in categories
     ])
 
@@ -94,6 +93,18 @@ def confirm_order_menu():
         )]
     ])
 
+def confirm_phone_menu():
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton(
+            "📱 Oui partager numéro",
+            callback_data="phone_yes"
+        )],
+        [InlineKeyboardButton(
+            "❌ Non continuer",
+            callback_data="phone_no"
+        )]
+    ])
+
 def phone_menu():
     return ReplyKeyboardMarkup(
         [[KeyboardButton(
@@ -125,7 +136,7 @@ def cart_menu():
 async def start(update: Update,
 context: ContextTypes.DEFAULT_TYPE):
 
-    user_cart[update.effective_user.id] = []
+    user_cart[update.effective_user.id]=[]
 
     await update.message.reply_text(
         "Bienvenue 👋 Choisis une catégorie :",
@@ -137,7 +148,7 @@ context: ContextTypes.DEFAULT_TYPE):
 async def button(update: Update,
 context: ContextTypes.DEFAULT_TYPE):
 
-    query = update.callback_query
+    query=update.callback_query
     await query.answer()
 
     data=query.data
@@ -237,17 +248,33 @@ context: ContextTypes.DEFAULT_TYPE):
     elif data=="checkout":
 
         await query.edit_message_text(
-            "Êtes-vous sûr de vouloir commander ?",
+            "Es-tu sûr de vouloir commander ?",
             reply_markup=confirm_order_menu()
         )
 
     elif data=="confirm_order_yes":
 
+        await query.edit_message_text(
+            "Souhaites-tu partager ton numéro ?",
+            reply_markup=confirm_phone_menu()
+        )
+
+    elif data=="phone_yes":
+
         waiting_phone[user_id]=True
 
         await query.message.reply_text(
-            "Partage ton numéro 📱",
+            "Clique pour partager ton numéro 📱",
             reply_markup=phone_menu()
+        )
+
+    elif data=="phone_no":
+
+        await send_order(context,user_id,
+        "Non fourni")
+
+        await query.edit_message_text(
+            "Commande envoyée sans numéro ✅"
         )
 
     elif data=="back_main":
@@ -256,6 +283,28 @@ context: ContextTypes.DEFAULT_TYPE):
             "Choisis une catégorie 👇",
             reply_markup=main_menu()
         )
+
+# ================= SEND ORDER =================
+
+async def send_order(context,user_id,
+phone):
+
+    cart=user_cart.get(user_id,[])
+
+    produits="\n".join(cart)
+
+    message=(
+        f"📦 NOUVELLE COMMANDE\n\n"
+        f"📞 Numéro: {phone}\n\n"
+        f"🛍 Produits:\n{produits}"
+    )
+
+    await context.bot.send_message(
+        chat_id=ADMIN_ID,
+        text=message
+    )
+
+    user_cart[user_id].clear()
 
 # ================= CONTACT =================
 
@@ -269,28 +318,15 @@ context: ContextTypes.DEFAULT_TYPE):
 
     phone=update.message.contact.phone_number
 
-    cart=user_cart.get(user.id,[])
-
-    produits="\n".join(cart)
-
-    message=(
-        f"📦 NOUVELLE COMMANDE\n\n"
-        f"👤 Client: {user.full_name}\n"
-        f"📞 Numéro: {phone}\n\n"
-        f"🛍 Produits:\n{produits}"
-    )
-
-    await context.bot.send_message(
-        chat_id=ADMIN_ID,
-        text=message
-    )
+    await send_order(context,
+    user.id,
+    phone)
 
     await update.message.reply_text(
         "Commande envoyée ✅",
         reply_markup=ReplyKeyboardRemove()
     )
 
-    user_cart[user.id].clear()
     waiting_phone[user.id]=False
 
 # ================= TEXT =================
