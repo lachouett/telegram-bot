@@ -6,7 +6,15 @@ ADMIN_ID = 5672707695
 
 # ================= DATA =================
 
-categories = ["chaussures","T-shirt","pull","short","veste","pantalon","chapeau"]
+categories = [
+    "chaussures",
+    "T-shirt",
+    "pull",
+    "short",
+    "veste",
+    "pantalon",
+    "chapeau"
+]
 
 brands = {
     "chaussures": ["Nike","Adidas","New Balance"],
@@ -25,6 +33,7 @@ shoe_models = {
 }
 
 user_cart = {}
+waiting_phone = {}
 
 # ================= MENUS =================
 
@@ -39,7 +48,9 @@ def brand_menu(cat):
         [[InlineKeyboardButton(b, callback_data=f"brand_{cat}_{b}")]
          for b in brands[cat]]
         +
-        [[InlineKeyboardButton("🛒 Panier", callback_data="cart")]]
+        [[InlineKeyboardButton("🛒 Voir panier", callback_data="cart")]]
+        +
+        [[InlineKeyboardButton("⬅️ Menu", callback_data="back_main")]]
     )
 
 def model_menu(cat, brand):
@@ -50,10 +61,10 @@ def model_menu(cat, brand):
         [[InlineKeyboardButton("⬅️ Retour", callback_data=f"cat_{cat}")]]
     )
 
-def cart_menu():
+def confirm_order_menu():
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("✅ Commander", callback_data="checkout")],
-        [InlineKeyboardButton("🗑 Vider", callback_data="clear")]
+        [InlineKeyboardButton("✅ Oui", callback_data="confirm_order_yes")],
+        [InlineKeyboardButton("❌ Non", callback_data="cart")]
     ])
 
 def phone_keyboard():
@@ -63,11 +74,21 @@ def phone_keyboard():
         one_time_keyboard=True
     )
 
+def cart_menu():
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("✅ Commander", callback_data="checkout")],
+        [InlineKeyboardButton("🗑 Vider panier", callback_data="clear")],
+        [InlineKeyboardButton("⬅️ Continuer achats", callback_data="back_main")]
+    ])
+
 # ================= START =================
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_cart[update.effective_user.id] = []
-    await update.message.reply_text("Bienvenue 👋", reply_markup=main_menu())
+    await update.message.reply_text(
+        "Bienvenue 👋 Choisis une catégorie :",
+        reply_markup=main_menu()
+    )
 
 # ================= CALLBACK =================
 
@@ -81,49 +102,73 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if user_id not in user_cart:
         user_cart[user_id] = []
 
+    # CAT
     if data.startswith("cat_"):
         cat = data.split("_")[1]
-        await query.edit_message_text("Choisis une marque 👇", reply_markup=brand_menu(cat))
+        await query.edit_message_text(
+            "Choisis une marque 👇",
+            reply_markup=brand_menu(cat)
+        )
 
+    # BRAND
     elif data.startswith("brand_"):
-        _, cat, brand = data.split("_",2)
+        _, cat, brand = data.split("_", 2)
 
         if cat == "chaussures":
-            await query.edit_message_text("Choisis modèle 👇", reply_markup=model_menu(cat, brand))
+            await query.edit_message_text(
+                "Choisis un modèle 👇",
+                reply_markup=model_menu(cat, brand)
+            )
         else:
             product = f"{cat} {brand}"
             user_cart[user_id].append(product)
-            await query.edit_message_text(f"{product} ajouté 🛒", reply_markup=cart_menu())
 
+            await query.edit_message_text(
+                f"{product} ajouté au panier 🛒",
+                reply_markup=cart_menu()
+            )
+
+    # MODEL
     elif data.startswith("model_"):
-        _, cat, brand, model = data.split("_",3)
+        _, cat, brand, model = data.split("_", 3)
+
         product = f"{brand} {model}"
         user_cart[user_id].append(product)
 
-        await query.edit_message_text(f"{product} ajouté 🛒", reply_markup=cart_menu())
+        await query.edit_message_text(
+            f"{product} ajouté au panier 🛒",
+            reply_markup=cart_menu()
+        )
 
+    # CART
     elif data == "cart":
         cart = user_cart[user_id]
 
         if not cart:
-            await query.edit_message_text("Panier vide", reply_markup=main_menu())
+            await query.edit_message_text("Panier vide 🛒", reply_markup=main_menu())
         else:
-            await query.edit_message_text(
-                "🛒\n" + "\n".join(cart),
-                reply_markup=cart_menu()
-            )
+            text = "\n".join(cart)
+            await query.edit_message_text(f"Ton panier:\n{text}", reply_markup=cart_menu())
 
+    # CLEAR
     elif data == "clear":
         user_cart[user_id].clear()
-        await query.edit_message_text("Panier vidé", reply_markup=main_menu())
+        await query.edit_message_text("🗑 Panier vidé.", reply_markup=main_menu())
 
-    # 🚀 CHECKOUT DIRECT (FIX BUG)
+    # CHECKOUT (FIX ICI)
     elif data == "checkout":
         context.user_data["cart"] = user_cart[user_id]
 
         await query.message.reply_text(
-            "📞 Pour finaliser ta commande 👇",
+            "📞 Pour finaliser ta commande, clique sur le bouton en bas 👇",
             reply_markup=phone_keyboard()
+        )
+
+    # BACK
+    elif data == "back_main":
+        await query.edit_message_text(
+            "Choisis une catégorie 👇",
+            reply_markup=main_menu()
         )
 
 # ================= CONTACT =================
@@ -143,10 +188,20 @@ async def contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await context.bot.send_message(
         chat_id=ADMIN_ID,
-        text=f"📦 COMMANDE\n\n👤 {user.full_name}\n📞 {phone}\n\n" + "\n".join(cart)
+        text=(
+            f"📦 NOUVELLE COMMANDE\n\n"
+            f"👤 {user.full_name}\n"
+            f"📞 {phone}\n\n"
+            f"🛍 Produits:\n" + "\n".join(cart)
+        )
     )
 
-    user_cart[user.id] = []
+    user_cart[user.id].clear()
+
+# ================= TEXT =================
+
+async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await start(update, context)
 
 # ================= RUN =================
 
@@ -155,6 +210,7 @@ app = ApplicationBuilder().token(TOKEN).build()
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CallbackQueryHandler(button))
 app.add_handler(MessageHandler(filters.CONTACT, contact_handler))
+app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_handler))
 
 print("Bot lancé 🚀")
 app.run_polling()
