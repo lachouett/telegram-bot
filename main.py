@@ -132,7 +132,7 @@ def model_menu(cat, brand):
     )
 
 
-def confirm_menu(cat, brand, item):
+def confirm_add_menu(cat, brand, item):
 
     return InlineKeyboardMarkup([
 
@@ -143,24 +143,24 @@ def confirm_menu(cat, brand, item):
 
         [InlineKeyboardButton(
             "❌ Non",
-            callback_data=f"brand_{cat}_{brand}"
+            callback_data=f"cat_{cat}"
         )]
 
     ])
 
 
-def after_add_menu(cat):
+def confirm_order_menu():
 
     return InlineKeyboardMarkup([
 
         [InlineKeyboardButton(
-            "⬅️ Continuer achats",
-            callback_data=f"cat_{cat}"
+            "✅ Oui",
+            callback_data="confirm_order_yes"
         )],
 
         [InlineKeyboardButton(
-            "🛒 Voir panier",
-            callback_data="cart"
+            "❌ Non",
+            callback_data="confirm_order_no"
         )]
 
     ])
@@ -258,8 +258,8 @@ async def button(update: Update,
         else:
 
             await query.edit_message_text(
-                f"Es-tu sûr d'ajouter {brand} ({cat}) au panier ?",
-                reply_markup=confirm_menu(cat, brand, brand)
+                f"Ajouter {brand} ({cat}) au panier ?",
+                reply_markup=confirm_add_menu(cat, brand, brand)
             )
 
 # -------- MODEL --------
@@ -273,8 +273,8 @@ async def button(update: Update,
         model = parts[3]
 
         await query.edit_message_text(
-            f"Es-tu sûr d'ajouter {brand} {model} au panier ?",
-            reply_markup=confirm_menu(cat, brand, model)
+            f"Ajouter {brand} {model} au panier ?",
+            reply_markup=confirm_add_menu(cat, brand, model)
         )
 
 # -------- ADD --------
@@ -293,7 +293,7 @@ async def button(update: Update,
 
         await query.edit_message_text(
             f"{product} ajouté au panier 🛒",
-            reply_markup=after_add_menu(cat)
+            reply_markup=cart_menu()
         )
 
 # -------- CART --------
@@ -318,35 +318,33 @@ async def button(update: Update,
                 reply_markup=cart_menu()
             )
 
-# -------- CLEAR --------
-
-    elif data == "clear":
-
-        user_cart[user_id] = []
-
-        await query.edit_message_text(
-            "Panier vidé 🗑",
-            reply_markup=main_menu()
-        )
-
 # -------- CHECKOUT --------
 
     elif data == "checkout":
 
+        await query.edit_message_text(
+            "Es-tu sûr de vouloir commander ?",
+            reply_markup=confirm_order_menu()
+        )
+
+# -------- CONFIRM ORDER YES --------
+
+    elif data == "confirm_order_yes":
+
         waiting_phone[user_id] = True
 
         await query.message.reply_text(
-            "Partage ton numéro 📱 pour qu’un vendeur te contacte rapidement.",
+            "Partage ton numéro 📱 pour que le vendeur te contacte rapidement.",
             reply_markup=phone_menu()
         )
 
-# -------- BACK --------
+# -------- CONFIRM ORDER NO --------
 
-    elif data == "back_main":
+    elif data == "confirm_order_no":
 
         await query.edit_message_text(
-            "Menu principal",
-            reply_markup=main_menu()
+            "Commande annulée.",
+            reply_markup=cart_menu()
         )
 
 # ================= CONTACT =================
@@ -377,19 +375,12 @@ async def contact_handler(update: Update,
     )
 
     await update.message.reply_text(
-        "Commande envoyée ✅ Un vendeur te contactera bientôt.",
+        "Commande envoyée ✅",
         reply_markup=ReplyKeyboardRemove()
     )
 
     user_cart[user.id] = []
     waiting_phone[user.id] = False
-
-# ================= TEXT MESSAGE =================
-
-async def text_handler(update: Update,
-                       context: ContextTypes.DEFAULT_TYPE):
-
-    await start(update, context)
 
 # ================= RUN =================
 
@@ -401,11 +392,6 @@ app.add_handler(CallbackQueryHandler(button))
 app.add_handler(MessageHandler(
     filters.CONTACT,
     contact_handler
-))
-
-app.add_handler(MessageHandler(
-    filters.TEXT & ~filters.COMMAND,
-    text_handler
 ))
 
 print("Bot lancé 🚀")
