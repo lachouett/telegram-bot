@@ -156,6 +156,23 @@ def shoe_model_menu(cat, brand):
     )
 
 
+def confirm_add_menu(cat, item):
+
+    return InlineKeyboardMarkup([
+
+        [InlineKeyboardButton(
+            "✅ Oui",
+            callback_data=f"add_{cat}_{item}"
+        )],
+
+        [InlineKeyboardButton(
+            "❌ Non",
+            callback_data=f"cat_{cat}"
+        )]
+
+    ])
+
+
 def after_add_menu(cat):
 
     return InlineKeyboardMarkup([
@@ -266,11 +283,9 @@ async def button(update: Update,
 
             item = f"{cat} {brand}"
 
-            user_cart[user_id].append(item)
-
             await query.edit_message_text(
-                f"{item} ajouté au panier 🛒",
-                reply_markup=after_add_menu(cat)
+                f"Ajouter {item} au panier ?",
+                reply_markup=confirm_add_menu(cat, item)
             )
 
 # -------- MODEL (CHAUSSURES) --------
@@ -284,6 +299,20 @@ async def button(update: Update,
         model = parts[3]
 
         item = f"{brand} {model}"
+
+        await query.edit_message_text(
+            f"Ajouter {item} au panier ?",
+            reply_markup=confirm_add_menu(cat, item)
+        )
+
+# -------- ADD CONFIRM --------
+
+    elif data.startswith("add_"):
+
+        parts = data.split("_")
+
+        cat = parts[1]
+        item = parts[2]
 
         user_cart[user_id].append(item)
 
@@ -380,6 +409,16 @@ async def contact_handler(update: Update,
     user_cart[user.id] = []
     waiting_phone[user.id] = False
 
+# ================= MESSAGE TEXTE =================
+
+async def text_handler(update: Update,
+                       context: ContextTypes.DEFAULT_TYPE):
+
+    await update.message.reply_text(
+        "Utilise les boutons pour naviguer 👇",
+        reply_markup=main_menu()
+    )
+
 # ================= RUN =================
 
 app = ApplicationBuilder().token(TOKEN).build()
@@ -391,6 +430,11 @@ app.add_handler(CallbackQueryHandler(button))
 app.add_handler(MessageHandler(
     filters.CONTACT,
     contact_handler
+))
+
+app.add_handler(MessageHandler(
+    filters.TEXT & ~filters.COMMAND,
+    text_handler
 ))
 
 print("Bot lancé 🚀")
