@@ -264,14 +264,13 @@ context: ContextTypes.DEFAULT_TYPE):
         waiting_phone[user_id]=True
 
         await query.message.reply_text(
-            "Clique pour partager ton numéro 📱",
+            "Clique sur le bouton ci-dessous pour partager ton numéro 📱",
             reply_markup=phone_menu()
         )
 
     elif data=="phone_no":
 
-        await send_order(context,user_id,
-        "Non fourni")
+        await send_order(context,user_id,"Non fourni")
 
         await query.edit_message_text(
             "Commande envoyée sans numéro ✅"
@@ -284,10 +283,33 @@ context: ContextTypes.DEFAULT_TYPE):
             reply_markup=main_menu()
         )
 
+# ================= CONTACT FIX =================
+
+async def contact_handler(update: Update,
+context: ContextTypes.DEFAULT_TYPE):
+
+    user=update.message.from_user
+
+    if not update.message.contact:
+        return
+
+    if user.id not in waiting_phone:
+        return
+
+    phone=update.message.contact.phone_number
+
+    await send_order(context,user.id,phone)
+
+    await update.message.reply_text(
+        "Commande envoyée ✅",
+        reply_markup=ReplyKeyboardRemove()
+    )
+
+    waiting_phone[user.id]=False
+
 # ================= SEND ORDER =================
 
-async def send_order(context,user_id,
-phone):
+async def send_order(context,user_id,phone):
 
     cart=user_cart.get(user_id,[])
 
@@ -305,29 +327,6 @@ phone):
     )
 
     user_cart[user_id].clear()
-
-# ================= CONTACT =================
-
-async def contact_handler(update: Update,
-context: ContextTypes.DEFAULT_TYPE):
-
-    user=update.message.from_user
-
-    if user.id not in waiting_phone:
-        return
-
-    phone=update.message.contact.phone_number
-
-    await send_order(context,
-    user.id,
-    phone)
-
-    await update.message.reply_text(
-        "Commande envoyée ✅",
-        reply_markup=ReplyKeyboardRemove()
-    )
-
-    waiting_phone[user.id]=False
 
 # ================= TEXT =================
 
