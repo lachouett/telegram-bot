@@ -4,218 +4,207 @@ from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandle
 TOKEN = "8619884398:AAF6LfVgtxEExNRhTM181PdsHggAmAI0UCM"
 ADMIN_ID = 5672707695
 
-# ================= DATA =================
+# --- DONNÉES ---
 
-categories = [
-    "chaussures",
-    "T-shirt",
-    "pull",
-    "short",
-    "veste",
-    "pantalon",
-    "chapeau"
-]
+catalogue = {
 
-brands = {
-    "chaussures": ["Nike","Adidas","New Balance"],
-    "T-shirt": ["Nike","Adidas","Lacoste"],
-    "pull": ["Nike","Adidas","Lacoste"],
-    "short": ["Nike","Adidas"],
-    "veste": ["Nike","Adidas"],
-    "pantalon": ["Nike","Adidas"],
-    "chapeau": ["Nike"]
+    "Chaussures": {
+        "Nike": [],
+        "Adidas": [],
+        "Asics": [],
+        "New Balance": [],
+        "Saucony": [],
+        "Dior": [],
+        "Salomon": [],
+        "Prada": [],
+        "Balenciaga": []
+    },
+
+    "T-shirt": {
+        "Nike": [],
+        "Adidas": [],
+        "Dior": [],
+        "Louis Vuitton": [],
+        "Gucci": [],
+        "Lacoste": [],
+        "Prada": [],
+        "Stone Island": [],
+        "Casa Blanca": [],
+        "Balenciaga": [],
+        "Ralph Laurent": [],
+        "Moncler": [],
+        "Bape": [],
+        "Essential": [],
+        "Fendi": []
+    },
+
+    "Short": {
+        "Nike": [],
+        "Adidas": [],
+        "Dior": [],
+        "Louis Vuitton": [],
+        "Gucci": [],
+        "Lacoste": [],
+        "Prada": [],
+        "Stone Island": [],
+        "Casa Blanca": [],
+        "Balenciaga": [],
+        "Ralph Laurent": [],
+        "Moncler": [],
+        "Bape": [],
+        "Essential": [],
+        "Fendi": []
+    },
+
+    "Maillot de bain": {
+        "Nike": [],
+        "Adidas": [],
+        "Dior": [],
+        "Louis Vuitton": [],
+        "Gucci": [],
+        "Lacoste": [],
+        "Fendi": []
+    },
+
+    "Casquette": {
+        "Nike": [],
+        "Adidas": [],
+        "Gucci": [],
+        "Dior": [],
+        "Fendi": [],
+        "Burberry": []
+    },
+
+    "Bonnet": {
+        "Nike": [],
+        "Lacoste": [],
+        "Adidas": [],
+        "Louis Vuitton": [],
+        "Fendi": [],
+        "Ralph Laurent": []
+    },
+
+    "Jacket": {
+        "Stone Island": [],
+        "CP Compagnie": [],
+        "Ralph Laurent": [],
+        "Lacoste": [],
+        "Burberry": [],
+        "Nike": [],
+        "Adidas": []
+    },
+
+    "Imperméable": {
+        "Stone Island": [],
+        "CP Compagnie": [],
+        "Ralph Laurent": [],
+        "Lacoste": [],
+        "Nike": [],
+        "Adidas": []
+    },
+
+    "Doudoune": {
+        "Stone Island": [],
+        "CP Compagnie": [],
+        "Ralph Laurent": [],
+        "Lacoste": [],
+        "Burberry": [],
+        "Nike": [],
+        "Adidas": []
+    },
+
+    "Pantalon": {
+
+    },
+
+    "Ceinture": {
+        "Gucci": [],
+        "Calvin Klein": [],
+        "Louis Vuitton": [],
+        "Fendi": []
+    },
+
+    "Caleçon": {
+        "Calvin Klein": []
+    }
+
 }
 
-shoe_models = {
-    "Nike": ["Air Force 1","TN"],
-    "Adidas": ["Samba"],
-    "New Balance": ["2002R"]
-}
+# --- FONCTIONS ---
 
-# stockage panier
-user_cart = {}
+def clavier_categories():
+    boutons = [[cat] for cat in catalogue.keys()]
+    return ReplyKeyboardMarkup(boutons, resize_keyboard=True)
 
-# ================= MENUS =================
+def clavier_marques(categorie):
+    boutons = [[marque] for marque in catalogue[categorie].keys()]
+    boutons.append(["🔙 Retour"])
+    return ReplyKeyboardMarkup(boutons, resize_keyboard=True)
 
-def main_menu():
-    return InlineKeyboardMarkup([
-        [InlineKeyboardButton(c, callback_data=f"cat_{c}")]
-        for c in categories
-    ])
+def clavier_modeles(categorie, marque):
+    modeles = catalogue[categorie][marque]
 
-def brand_menu(cat):
-    return InlineKeyboardMarkup(
-        [[InlineKeyboardButton(b, callback_data=f"brand_{cat}_{b}")]
-         for b in brands[cat]]
-        +
-        [[InlineKeyboardButton("🛒 Voir panier", callback_data="cart")]]
-    )
+    if not modeles:
+        boutons = [["Aucun modèle disponible"]]
+    else:
+        boutons = [[modele] for modele in modeles]
 
-def model_menu(cat, brand):
-    return InlineKeyboardMarkup(
-        [[InlineKeyboardButton(m, callback_data=f"model_{cat}_{brand}_{m}")]
-         for m in shoe_models[brand]]
-        +
-        [[InlineKeyboardButton("⬅️ Retour", callback_data=f"cat_{cat}")]]
-    )
+    boutons.append(["🔙 Retour"])
+    return ReplyKeyboardMarkup(boutons, resize_keyboard=True)
 
-def cart_menu():
-    return InlineKeyboardMarkup([
-        [InlineKeyboardButton("✅ Finaliser commande", callback_data="checkout")],
-        [InlineKeyboardButton("🗑 Vider panier", callback_data="clear")],
-        [InlineKeyboardButton("⬅️ Continuer", callback_data="back_main")]
-    ])
-
-def phone_keyboard():
-    return ReplyKeyboardMarkup(
-        [[KeyboardButton("📞 Partager mon numéro", request_contact=True)]],
-        resize_keyboard=True,
-        one_time_keyboard=True
-    )
-
-# ================= START =================
+# --- COMMANDES ---
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_cart[update.effective_user.id] = []
-
     await update.message.reply_text(
-        "👋 Bienvenue sur le shop\n\nChoisis une catégorie 👇",
-        reply_markup=main_menu()
+        "Bienvenue 👋\nChoisis un type d'habit :",
+        reply_markup=clavier_categories()
     )
 
-# ================= CALLBACK =================
+async def message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
+    texte = update.message.text
 
-    data = query.data
-    user_id = query.from_user.id
-
-    if user_id not in user_cart:
-        user_cart[user_id] = []
-
-    # catégories
-    if data.startswith("cat_"):
-        cat = data.split("_")[1]
-
-        await query.edit_message_text(
-            f"📂 {cat} - Choisis une marque 👇",
-            reply_markup=brand_menu(cat)
+    # Retour menu principal
+    if texte == "🔙 Retour":
+        context.user_data.clear()
+        await update.message.reply_text(
+            "Menu principal :",
+            reply_markup=clavier_categories()
         )
-
-    # marques
-    elif data.startswith("brand_"):
-        _, cat, brand = data.split("_", 2)
-
-        if cat == "chaussures":
-            await query.edit_message_text(
-                f"👟 {brand} - Choisis un modèle 👇",
-                reply_markup=model_menu(cat, brand)
-            )
-        else:
-            product = f"{cat} {brand}"
-            user_cart[user_id].append(product)
-
-            await query.edit_message_text(
-                f"✅ {product} ajouté au panier",
-                reply_markup=cart_menu()
-            )
-
-    # modèles chaussures
-    elif data.startswith("model_"):
-        _, cat, brand, model = data.split("_", 3)
-
-        product = f"{brand} {model}"
-        user_cart[user_id].append(product)
-
-        await query.edit_message_text(
-            f"✅ {product} ajouté au panier",
-            reply_markup=cart_menu()
-        )
-
-    # panier
-    elif data == "cart":
-        cart = user_cart[user_id]
-
-        if not cart:
-            await query.edit_message_text(
-                "🛒 Panier vide",
-                reply_markup=main_menu()
-            )
-        else:
-            text = "\n".join(cart)
-
-            await query.edit_message_text(
-                f"🛒 Ton panier :\n\n{text}",
-                reply_markup=cart_menu()
-            )
-
-    # vider
-    elif data == "clear":
-        user_cart[user_id].clear()
-
-        await query.edit_message_text(
-            "🗑 Panier vidé",
-            reply_markup=main_menu()
-        )
-
-    # finaliser
-    elif data == "checkout":
-        context.user_data["cart"] = user_cart[user_id]
-
-        await query.message.reply_text(
-            "📦 Commande prête\n\n📞 Partage ton numéro pour être contacté 👇",
-            reply_markup=phone_keyboard()
-        )
-
-    # retour
-    elif data == "back_main":
-        await query.edit_message_text(
-            "Choisis une catégorie 👇",
-            reply_markup=main_menu()
-        )
-
-# ================= CONTACT =================
-
-async def contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not update.message.contact:
         return
 
-    user = update.message.from_user
-    phone = update.message.contact.phone_number
-    cart = context.user_data.get("cart", [])
+    # Catégorie choisie
+    if texte in catalogue:
+        context.user_data["categorie"] = texte
 
-    await update.message.reply_text(
-        "✅ Merci ! Le vendeur va te contacter rapidement.",
-        reply_markup=ReplyKeyboardRemove()
-    )
-
-    await context.bot.send_message(
-        chat_id=ADMIN_ID,
-        text=(
-            f"📦 NOUVELLE COMMANDE\n\n"
-            f"👤 {user.full_name}\n"
-            f"📞 {phone}\n\n"
-            f"🛍 Produits:\n" + "\n".join(cart)
+        await update.message.reply_text(
+            f"Marques disponibles pour {texte} :",
+            reply_markup=clavier_marques(texte)
         )
-    )
+        return
 
-    user_cart[user.id].clear()
+    # Marque choisie
+    if "categorie" in context.user_data:
 
-# ================= TEXT =================
+        categorie = context.user_data["categorie"]
 
-async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await start(update, context)
+        if texte in catalogue[categorie]:
 
-# ================= RUN =================
+            context.user_data["marque"] = texte
 
-app = ApplicationBuilder().token(TOKEN).build()
+            await update.message.reply_text(
+                f"Modèles pour {texte} :",
+                reply_markup=clavier_modeles(categorie, texte)
+            )
+            return
+
+
+# --- LANCEMENT BOT ---
+
+app = ApplicationBuilder().token("TON_TOKEN_ICI").build()
 
 app.add_handler(CommandHandler("start", start))
-app.add_handler(CallbackQueryHandler(button))
-app.add_handler(MessageHandler(filters.CONTACT, contact_handler))
-app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_handler))
+app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message))
 
-print("Bot lancé 🚀")
+print("Bot lancé...")
 app.run_polling()
