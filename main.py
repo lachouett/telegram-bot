@@ -6,74 +6,165 @@ ADMIN_ID = 5672707695
 
 # ================= DATA =================
 
-categories = ["chaussures", "T-shirt", "short", "pull"]
+categories = [
+    "chaussures",
+    "T-shirt",
+    "short",
+    "pull",
+    "pantalon",
+    "chapeau",
+    "veste"
+]
 
-shoe_brands = ["Nike", "Adidas", "New Balance"]
+shoe_brands = [
+    "Nike",
+    "Adidas",
+    "New Balance",
+    "Asics",
+    "Saucony"
+]
 
 shoe_models = {
-    "Nike": ["Air Force 1", "TN"],
-    "Adidas": ["Samba"],
-    "New Balance": ["2002R"]
+
+    "Nike": [
+        "Air Force 1",
+        "TN",
+        "Shox"
+    ],
+
+    "Adidas": [
+        "Samba",
+        "Gazelle"
+    ],
+
+    "New Balance": [
+        "2002R",
+        "9060"
+    ],
+
+    "Asics": [
+        "Gel NYC",
+        "Gel Kayano 14"
+    ],
+
+    "Saucony": [
+        "Progrid",
+        "Omni9"
+    ]
+
 }
 
+# images (tu peux changer plus tard)
+
 products = {
-    "Nike_Air Force 1": {
-        "img": "https://i.imgur.com/OZ8FQ0M.png"
-    },
-    "Nike_TN": {
-        "img": "https://i.imgur.com/Z9qv7Qn.png"
-    },
-    "Adidas_Samba": {
-        "img": "https://i.imgur.com/Q7SKX7N.png"
-    },
-    "New Balance_2002R": {
-        "img": "https://i.imgur.com/Q7SKX7N.png"
-    }
+
+    "Nike_Air Force 1":
+        {"img": "https://i.imgur.com/OZ8FQ0M.png"},
+
+    "Nike_TN":
+        {"img": "https://i.imgur.com/Z9qv7Qn.png"},
+
+    "Adidas_Samba":
+        {"img": "https://i.imgur.com/Q7SKX7N.png"},
+
+    "New Balance_2002R":
+        {"img": "https://i.imgur.com/Q7SKX7N.png"}
+
 }
 
 user_cart = {}
-user_waiting_phone = {}
+waiting_phone = {}
 
 # ================= MENUS =================
 
 def main_menu():
+
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton(c, callback_data=f"cat_{c}")]
+        [InlineKeyboardButton(c,
+         callback_data=f"cat_{c}")]
         for c in categories
     ])
 
 
-def shoe_brand_menu():
+def brand_menu():
+
     return InlineKeyboardMarkup(
-        [[InlineKeyboardButton(b, callback_data=f"brand_{b}")]
-         for b in shoe_brands] +
-        [[InlineKeyboardButton("🛒 Voir panier", callback_data="cart")]]
+
+        [[InlineKeyboardButton(
+            b,
+            callback_data=f"brand_{b}"
+        )] for b in shoe_brands]
+
+        +
+
+        [[InlineKeyboardButton(
+            "🛒 Voir panier",
+            callback_data="cart"
+        )]]
+
+        +
+
+        [[InlineKeyboardButton(
+            "⬅️ Retour",
+            callback_data="back_main"
+        )]]
+
     )
 
 
-def shoe_model_menu(brand):
+def model_menu(brand):
+
     return InlineKeyboardMarkup(
-        [[InlineKeyboardButton(m,
-         callback_data=f"model_{brand}_{m}")]
-         for m in shoe_models[brand]] +
-        [[InlineKeyboardButton("⬅️ Retour", callback_data="back")]]
+
+        [[InlineKeyboardButton(
+            m,
+            callback_data=f"model_{brand}_{m}"
+        )] for m in shoe_models[brand]]
+
+        +
+
+        [[InlineKeyboardButton(
+            "⬅️ Retour",
+            callback_data="back_brand"
+        )]]
+
     )
 
 
 def cart_menu():
+
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("✅ Commander", callback_data="checkout")],
-        [InlineKeyboardButton("🗑 Vider panier", callback_data="clear")],
-        [InlineKeyboardButton("⬅️ Retour", callback_data="back")]
+
+        [InlineKeyboardButton(
+            "✅ Commander",
+            callback_data="checkout"
+        )],
+
+        [InlineKeyboardButton(
+            "🗑 Vider panier",
+            callback_data="clear"
+        )],
+
+        [InlineKeyboardButton(
+            "⬅️ Retour",
+            callback_data="back_main"
+        )]
+
     ])
 
 
 def phone_menu():
+
     return ReplyKeyboardMarkup(
-        [[KeyboardButton("📱 Partager numéro",
-         request_contact=True)]],
+
+        [[KeyboardButton(
+            "📱 Partager numéro",
+            request_contact=True
+        )]],
+
         resize_keyboard=True,
         one_time_keyboard=True
+
     )
 
 # ================= START =================
@@ -84,7 +175,7 @@ async def start(update: Update,
     user_cart[update.effective_user.id] = []
 
     await update.message.reply_text(
-        "Bienvenue 👋 Choisis une catégorie :",
+        "Menu principal",
         reply_markup=main_menu()
     )
 
@@ -102,7 +193,7 @@ async def button(update: Update,
     if user_id not in user_cart:
         user_cart[user_id] = []
 
-# -------- CATEGORIES --------
+# -------- CATEGORY --------
 
     if data.startswith("cat_"):
 
@@ -112,17 +203,17 @@ async def button(update: Update,
 
             await query.edit_message_text(
                 "Choisis une marque 👟",
-                reply_markup=shoe_brand_menu()
+                reply_markup=brand_menu()
             )
 
         else:
 
             await query.edit_message_text(
-                f"{cat} bientôt dispo 🔥",
+                f"{cat} bientôt disponible 🔥",
                 reply_markup=main_menu()
             )
 
-# -------- BRANDS --------
+# -------- BRAND --------
 
     elif data.startswith("brand_"):
 
@@ -130,10 +221,10 @@ async def button(update: Update,
 
         await query.edit_message_text(
             "Choisis un modèle 👇",
-            reply_markup=shoe_model_menu(brand)
+            reply_markup=model_menu(brand)
         )
 
-# -------- MODELS --------
+# -------- MODEL --------
 
     elif data.startswith("model_"):
 
@@ -155,6 +246,12 @@ async def button(update: Update,
                 caption=f"{model} ajouté au panier 🛒"
             )
 
+        else:
+
+            await query.message.reply_text(
+                f"{model} ajouté au panier 🛒"
+            )
+
 # -------- CART --------
 
     elif data == "cart":
@@ -164,7 +261,8 @@ async def button(update: Update,
         if not cart:
 
             await query.edit_message_text(
-                "Panier vide 🛒"
+                "Panier vide 🛒",
+                reply_markup=main_menu()
             )
 
         else:
@@ -183,14 +281,15 @@ async def button(update: Update,
         user_cart[user_id] = []
 
         await query.edit_message_text(
-            "Panier vidé 🗑"
+            "Panier vidé 🗑",
+            reply_markup=main_menu()
         )
 
 # -------- CHECKOUT --------
 
     elif data == "checkout":
 
-        user_waiting_phone[user_id] = True
+        waiting_phone[user_id] = True
 
         await query.message.reply_text(
             "Envoie ton numéro 📱",
@@ -199,11 +298,18 @@ async def button(update: Update,
 
 # -------- BACK --------
 
-    elif data == "back":
+    elif data == "back_main":
 
         await query.edit_message_text(
             "Menu principal",
             reply_markup=main_menu()
+        )
+
+    elif data == "back_brand":
+
+        await query.edit_message_text(
+            "Choisis une marque 👟",
+            reply_markup=brand_menu()
         )
 
 # ================= CONTACT =================
@@ -213,7 +319,7 @@ async def contact_handler(update: Update,
 
     user = update.message.from_user
 
-    if user.id not in user_waiting_phone:
+    if user.id not in waiting_phone:
         return
 
     phone = update.message.contact.phone_number
@@ -239,14 +345,16 @@ async def contact_handler(update: Update,
     )
 
     user_cart[user.id] = []
-    user_waiting_phone[user.id] = False
+    waiting_phone[user.id] = False
 
 # ================= RUN =================
 
 app = ApplicationBuilder().token(TOKEN).build()
 
 app.add_handler(CommandHandler("start", start))
+
 app.add_handler(CallbackQueryHandler(button))
+
 app.add_handler(MessageHandler(
     filters.CONTACT,
     contact_handler
