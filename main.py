@@ -4,7 +4,7 @@ from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandle
 TOKEN = "8619884398:AAF6LfVgtxEExNRhTM181PdsHggAmAI0UCM"
 ADMIN_ID = 5672707695
 
-# ================= CATEGORIES =================
+# ================= DATA =================
 
 categories = [
     "chaussures",
@@ -156,7 +156,7 @@ def shoe_model_menu(cat, brand):
     )
 
 
-def confirm_add_menu(cat, item):
+def confirm_menu(cat, item):
 
     return InlineKeyboardMarkup([
 
@@ -234,7 +234,7 @@ async def start(update: Update,
     user_cart[update.effective_user.id] = []
 
     await update.message.reply_text(
-        "Menu principal",
+        "Bienvenue 👋 Choisis une catégorie :",
         reply_markup=main_menu()
     )
 
@@ -285,10 +285,10 @@ async def button(update: Update,
 
             await query.edit_message_text(
                 f"Ajouter {item} au panier ?",
-                reply_markup=confirm_add_menu(cat, item)
+                reply_markup=confirm_menu(cat, item)
             )
 
-# -------- MODEL (CHAUSSURES) --------
+# -------- MODEL --------
 
     elif data.startswith("model_"):
 
@@ -302,10 +302,10 @@ async def button(update: Update,
 
         await query.edit_message_text(
             f"Ajouter {item} au panier ?",
-            reply_markup=confirm_add_menu(cat, item)
+            reply_markup=confirm_menu(cat, item)
         )
 
-# -------- ADD CONFIRM --------
+# -------- CONFIRM ADD --------
 
     elif data.startswith("add_"):
 
@@ -414,10 +414,7 @@ async def contact_handler(update: Update,
 async def text_handler(update: Update,
                        context: ContextTypes.DEFAULT_TYPE):
 
-    await update.message.reply_text(
-        "Utilise les boutons pour naviguer 👇",
-        reply_markup=main_menu()
-    )
+    await start(update, context)
 
 # ================= RUN =================
 
