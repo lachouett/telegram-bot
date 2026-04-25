@@ -134,7 +134,7 @@ async def message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # --- LANCEMENT ---
 
-app = ApplicationBuilder().token(TOKEN).build()
+app = ApplicationBuilder().token(8619884398:AAE37x8gTin70b5g0Di6AKsTZHayFrxdHUII).build()
 
 app.add_handler(CommandHandler("start", start))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message))
